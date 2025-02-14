@@ -29,6 +29,7 @@ from kloppy.infra.serializers.tracking.deserializer import (
     TrackingDataDeserializer,
 )
 from kloppy.utils import performance_logging
+from kloppy.io import get_file_extension
 
 logger = logging.getLogger(__name__)
 
@@ -230,25 +231,6 @@ class SkillCornerDeserializer(TrackingDataDeserializer[SkillCornerInputs]):
 
         return attacking_directions
 
-    @staticmethod
-    def __replace_timestamp(obj):
-        if "timestamp" in obj:
-            obj["time"] = obj.pop("timestamp")
-        return obj
-
-    def __load_json_raw(self, file):
-        if Path(file.name).suffix == ".jsonl":
-            data = []
-            for line in file:
-                obj = json.loads(line)
-                data.append(self.__replace_timestamp(obj))
-            return data
-        else:
-            data = json.load(file)
-            for line in data:
-                line = self.__replace_timestamp(line)
-            return data
-
     @classmethod
     def __get_periods(cls, tracking):
         """gets the Periods contained in the tracking data"""
@@ -318,6 +300,26 @@ class SkillCornerDeserializer(TrackingDataDeserializer[SkillCornerInputs]):
             starting_position=None,
             attributes={},
         )
+
+    @staticmethod
+    def __replace_timestamp(obj):
+        if "timestamp" in obj:
+            obj["time"] = obj.pop("timestamp")
+        return obj
+
+    def __load_json_raw(self, file):
+        meta_data_extension = get_file_extension(file)
+        if meta_data_extension == ".jsonl":
+            data = []
+            for line in file:
+                obj = json.loads(line)
+                data.append(self.__replace_timestamp(obj))
+            return data
+        else:
+            data = json.load(file)
+            for line in data:
+                line = self.__replace_timestamp(line)
+            return data
 
     def deserialize(self, inputs: SkillCornerInputs) -> TrackingDataset:
         metadata = json.load(inputs.meta_data)
